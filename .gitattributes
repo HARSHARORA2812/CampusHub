@@ -1,0 +1,15 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Force batch files to use CRLF line endings so they work in Windows CMD
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
+
+# Force all text files to use LF line endings in the repo and checkout with LF -> CRLF on Windows
+*.{js,jsx,ts,tsx,json,md,yml,yaml,html,css,scss} text eol=lf
+
+# Binary files should not be modified
+*.{png,jpg,jpeg,gif,ico,svg,woff,woff2,ttf,eot} binary
+
+# Don't auto-normalize package-lock.json (if exists)
+package-lock.json binary
