@@ -1,13 +1,42 @@
-# CampusHub
+# 🎓 CampusHub
 
-A comprehensive campus management system for educational institutions.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
-## Features
+## 🌟 Overview
 
-- User authentication and authorization
+CampusHub is a modern, full-stack campus management system designed to streamline campus life for students, faculty, and administrators. Built with the MERN stack (MongoDB, Express.js, React, Node.js), it provides a centralized platform for managing academic and extracurricular activities within educational institutions.
+
+## 🚀 Key Features
+
+### 👥 User Management
+- Secure authentication with JWT
 - Role-based access control (Student, Faculty, College Admin)
-- Opportunity management for students
-- Admin dashboard for management
+- Profile management and user settings
+
+### 📅 Academic Tools
+- Course management and enrollment
+- Assignment submissions and grading
+- Academic calendar integration
+
+### 👥 Student Life
+- Club and organization management
+- Event planning and registration
+- Lost & Found system
+- Campus marketplace
+
+### 📊 Administration
+- Comprehensive admin dashboard
+- User management and permissions
+- Analytics and reporting
+- System configuration
+
+### 🛠️ Technical Stack
+- **Frontend**: React, Redux, Material-UI
+- **Backend**: Node.js, Express.js
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT, bcrypt
+- **Real-time**: Socket.io
 
 ## Prerequisites
 
