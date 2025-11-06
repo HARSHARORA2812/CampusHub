@@ -11,50 +11,39 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-/**
- * Get all users (filtered by what the current admin can manage)
- */
 router.get('/users', authenticateToken, requireRoleLevel('college_management'), async (req, res) => {
   try {
     const { role: userRole, college_id: userCollegeId } = req.user;
     
     let query = {};
     
-    // College admin and management can only see their college users
     if (userRole === 'college_admin' || userRole === 'college_management') {
-      // STRICT: Must have college_id AND must match exactly
       if (!userCollegeId) {
         return res.status(400).json({ detail: 'Your account is missing college information' });
       }
       query.college_id = userCollegeId;
     }
-    // Main admin can see all users (no filter needed for college)
 
     const users = await User.find(query).select('-hashed_password');
     
-    // Filter users based on what the current admin can actually manage
     const manageableUsers = users.filter(user => {
-      // Main admin can see everyone
       if (userRole === 'main_admin') {
         return true;
       }
       
-      // STRICT: Verify college_id matches exactly (case-insensitive)
       if (userRole === 'college_admin' || userRole === 'college_management') {
         if (!user.college_id || !userCollegeId) {
-          return false; // Skip users without college_id
+          return false;
         }
         if (user.college_id.toLowerCase() !== userCollegeId.toLowerCase()) {
-          return false; // Skip users from different colleges
+          return false;
         }
       }
       
-      // College admin can see: college_management, faculty, student (NOT other college_admins or main_admin)
       if (userRole === 'college_admin') {
         return ['college_management', 'faculty', 'student'].includes(user.role);
       }
       
-      // College management can see: faculty, student (NOT college_management, college_admin, or main_admin)
       if (userRole === 'college_management') {
         return ['faculty', 'student'].includes(user.role);
       }
@@ -69,43 +58,35 @@ router.get('/users', authenticateToken, requireRoleLevel('college_management'), 
   }
 });
 
-/**
- * Promote user to a new role
- */
 router.post('/users/:userId/promote', authenticateToken, requireRoleLevel('college_management'), async (req, res) => {
   try {
     const { userId } = req.params;
     const { target_role } = req.body;
     const promoter = req.user;
 
-    // Find target user
     const targetUser = await User.findOne({ id: userId });
     if (!targetUser) {
       return res.status(404).json({ detail: 'User not found' });
     }
 
-    // CRITICAL: Protect main admin - CANNOT be promoted/demoted by ANYONE
     if (targetUser.role === 'main_admin') {
       return res.status(403).json({ 
         detail: 'The main admin cannot be demoted or modified. This account has ultimate protection.' 
       });
     }
 
-    // CRITICAL: Prevent promoting TO main_admin (only manual database operation can do this)
     if (target_role === 'main_admin') {
       return res.status(403).json({ 
         detail: 'Cannot promote users to main_admin role. This is a protected system role.' 
       });
     }
 
-    // Cannot promote yourself
     if (targetUser.id === promoter.id) {
       return res.status(400).json({ 
         detail: 'You cannot promote yourself' 
       });
     }
 
-    // Cannot promote someone at your level or higher
     const ROLE_LEVELS = {
       student: 1,
       faculty: 2,
@@ -120,14 +101,12 @@ router.post('/users/:userId/promote', authenticateToken, requireRoleLevel('colle
       });
     }
 
-    // Check if promoter can promote to this role
     if (!canPromoteToRole(promoter.role, target_role)) {
       return res.status(403).json({ 
         detail: `You don't have permission to promote users to ${target_role}` 
       });
     }
 
-    // College-specific admins can only promote users from their college
     if (promoter.role !== 'main_admin') {
       if (targetUser.college_id !== promoter.college_id) {
         return res.status(403).json({ 
@@ -136,7 +115,6 @@ router.post('/users/:userId/promote', authenticateToken, requireRoleLevel('colle
       }
     }
 
-    // Update the role
     targetUser.role = target_role;
     await targetUser.save();
 
@@ -151,34 +129,27 @@ router.post('/users/:userId/promote', authenticateToken, requireRoleLevel('colle
   }
 });
 
-/**
- * Demote user to a lower role
- */
 router.post('/users/:userId/demote', authenticateToken, requireRoleLevel('college_admin'), async (req, res) => {
   try {
     const { userId } = req.params;
     const { target_role } = req.body;
     const admin = req.user;
 
-    // Find target user
     const targetUser = await User.findOne({ id: userId });
     if (!targetUser) {
       return res.status(404).json({ detail: 'User not found' });
     }
 
-    // CRITICAL: Protect main admin - CANNOT be demoted by ANYONE
     if (targetUser.role === 'main_admin') {
       return res.status(403).json({ 
         detail: 'The main admin cannot be demoted. This account has ultimate protection.' 
       });
     }
 
-    // Can't demote yourself
     if (targetUser.id === admin.id) {
       return res.status(400).json({ detail: 'You cannot demote yourself' });
     }
 
-    // Cannot demote someone at your level or higher
     const ROLE_LEVELS = {
       student: 1,
       faculty: 2,
@@ -193,7 +164,6 @@ router.post('/users/:userId/demote', authenticateToken, requireRoleLevel('colleg
       });
     }
 
-    // College admins can only demote users from their college
     if (admin.role !== 'main_admin') {
       if (targetUser.college_id !== admin.college_id) {
         return res.status(403).json({ 
@@ -202,7 +172,6 @@ router.post('/users/:userId/demote', authenticateToken, requireRoleLevel('colleg
       }
     }
 
-    // Update the role
     targetUser.role = target_role;
     await targetUser.save();
 
@@ -217,9 +186,6 @@ router.post('/users/:userId/demote', authenticateToken, requireRoleLevel('colleg
   }
 });
 
-/**
- * Get college statistics (for admins - only counts users they can manage)
- */
 router.get('/stats/college', authenticateToken, requireRoleLevel('college_management'), async (req, res) => {
   try {
     const { role: userRole, college_id: userCollegeId } = req.user;
@@ -229,7 +195,6 @@ router.get('/stats/college', authenticateToken, requireRoleLevel('college_manage
       collegeFilter.college_id = userCollegeId;
     }
 
-    // Get manageable roles based on current user's role
     let manageableRoles = [];
     if (userRole === 'main_admin') {
       manageableRoles = ['student', 'faculty', 'college_management', 'college_admin', 'main_admin'];
@@ -258,9 +223,6 @@ router.get('/stats/college', authenticateToken, requireRoleLevel('college_manage
   }
 });
 
-/**
- * Get user's permissions
- */
 router.get('/my-permissions', authenticateToken, (req, res) => {
   try {
     const permissions = getRolePermissions(req.user.role);
@@ -275,35 +237,28 @@ router.get('/my-permissions', authenticateToken, (req, res) => {
   }
 });
 
-/**
- * Delete user (main_admin can delete anyone, college_admin can delete from their college)
- */
 router.delete('/users/:userId', authenticateToken, requireRoleLevel('college_admin'), async (req, res) => {
   try {
     const { userId } = req.params;
     const admin = req.user;
 
-    // Find target user
     const targetUser = await User.findOne({ id: userId });
     if (!targetUser) {
       return res.status(404).json({ detail: 'User not found' });
     }
 
-    // CRITICAL: Protect main admin - CANNOT be deleted by ANYONE
     if (targetUser.role === 'main_admin') {
       return res.status(403).json({ 
         detail: 'The main admin account cannot be deleted. This account has ultimate protection.' 
       });
     }
 
-    // Cannot delete yourself
     if (targetUser.id === admin.id) {
       return res.status(400).json({ 
         detail: 'You cannot delete your own account' 
       });
     }
 
-    // Role hierarchy check
     const ROLE_LEVELS = {
       student: 1,
       faculty: 2,
@@ -312,14 +267,12 @@ router.delete('/users/:userId', authenticateToken, requireRoleLevel('college_adm
       main_admin: 5
     };
     
-    // Cannot delete someone at your level or higher
     if (ROLE_LEVELS[targetUser.role] >= ROLE_LEVELS[admin.role]) {
       return res.status(403).json({ 
         detail: 'You cannot delete users at your level or higher' 
       });
     }
 
-    // College admin can only delete users from their college
     if (admin.role === 'college_admin') {
       if (!targetUser.college_id || !admin.college_id) {
         return res.status(400).json({ 
@@ -333,7 +286,6 @@ router.delete('/users/:userId', authenticateToken, requireRoleLevel('college_adm
       }
     }
 
-    // Delete the user
     await User.findOneAndDelete({ id: userId });
 
     res.json({ 

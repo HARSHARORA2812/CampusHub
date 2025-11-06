@@ -7,7 +7,6 @@ import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-// Import routes
 import authRoutes from './routes/auth.js';
 import eventRoutes from './routes/events.js';
 import clubRoutes from './routes/clubs.js';
@@ -19,25 +18,21 @@ import feedRoutes from './routes/feed.js';
 import statsRoutes from './routes/stats.js';
 import adminRoutes from './routes/admin.js';
 
-// Get current directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 500 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 500,
   message: 'Too many requests from this IP, please try again later.',
-  skip: (req) => req.method === 'OPTIONS' // Skip rate limiting for OPTIONS requests
+  skip: (req) => req.method === 'OPTIONS'
 });
 
-// Middleware
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false
@@ -52,13 +47,11 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging middleware
 app.use((req, res, next) => {
   console.log(`📥 ${req.method} ${req.path}`, req.body ? `Body: ${JSON.stringify(req.body)}` : '');
   next();
 });
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URL, {
   dbName: process.env.DB_NAME || 'CampusHub'
 })
@@ -70,7 +63,6 @@ mongoose.connect(process.env.MONGO_URL, {
   process.exit(1);
 });
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/clubs', clubRoutes);
@@ -82,7 +74,6 @@ app.use('/api/feed', feedRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -91,7 +82,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root endpoint
 app.get('/', (req, res) => {
   res.json({
     message: 'CampusHub API Server',
@@ -110,7 +100,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
@@ -119,7 +108,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
@@ -127,7 +115,6 @@ app.use('*', (req, res) => {
   });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`🚀 CampusHub API Server running on http://localhost:${PORT}`);
   console.log(`📚 API Documentation available at http://localhost:${PORT}`);

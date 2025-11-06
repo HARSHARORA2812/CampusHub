@@ -19,9 +19,11 @@ export function OpportunitiesPage() {
   const fetchOpportunities = async () => {
     try {
       const response = await axios.get(`${API}/opportunities`);
-      // Filter opportunities by college
       const userCollege = getCollegeName(user?.email);
       const filteredOpportunities = response.data.filter(opp => {
+        if (opp.posted_by_role === 'main_admin') {
+          return true;
+        }
         const oppCollege = getCollegeName(opp.posted_by_email || opp.college_email);
         return userCollege && oppCollege && userCollege.toLowerCase() === oppCollege.toLowerCase();
       });
@@ -37,7 +39,6 @@ export function OpportunitiesPage() {
 
   const collegeName = getCollegeName(user?.email);
   
-  // Check if user can create opportunities (college_management or higher)
   const canCreateOpportunity = ['college_management', 'college_admin', 'main_admin'].includes(user?.role);
 
   return (
@@ -45,8 +46,9 @@ export function OpportunitiesPage() {
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '1.5rem'
+        alignItems: 'flex-start',
+        marginBottom: '1rem',
+        gap: '1.5rem'
       }}>
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>Opportunities</h1>

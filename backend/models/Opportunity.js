@@ -44,6 +44,18 @@ const opportunitySchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  posted_by_email: {
+    type: String,
+    default: null
+  },
+  posted_by_role: {
+    type: String,
+    default: null
+  },
+  college_email: {
+    type: String,
+    default: null
+  },
   status: {
     type: String,
     enum: ['open', 'closing_soon', 'closed'],

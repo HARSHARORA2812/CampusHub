@@ -31,8 +31,9 @@ router.post('/', authenticateToken, requireRoleLevel('college_management'), vali
       ...req.body,
       posted_by_id: req.user.id,
       posted_by_name: req.user.full_name,
-      posted_by_email: req.user.email,  // For college filtering
-      college_email: req.user.email,    // For college filtering
+      posted_by_email: req.user.email,
+      posted_by_role: req.user.role,
+      college_email: req.user.email,
       status: 'open'
     };
 

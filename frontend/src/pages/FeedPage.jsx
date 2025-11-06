@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts';
 import { EventCard, OpportunityCard, MarketplaceCard, PostCard } from '../components/cards';
+import { EventDetailModal, OpportunityDetailModal, MarketplaceDetailModal } from '../components/modals';
 import { API, getCollegeName } from '../utils';
 
 export function FeedPage() {
   const [feed, setFeed] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState(null);
+  const [selectedMarketplaceItem, setSelectedMarketplaceItem] = useState(null);
   const { token, user } = useAuth();
 
   useEffect(() => {
@@ -36,6 +40,9 @@ export function FeedPage() {
             return annCollege && userCollege.toLowerCase() === annCollege.toLowerCase();
           }) || [],
           opportunities: response.data.opportunities?.filter(opp => {
+            if (opp.posted_by_role === 'main_admin') {
+              return true;
+            }
             const oppCollege = getCollegeName(opp.posted_by_email || opp.college_email);
             return oppCollege && userCollege.toLowerCase() === oppCollege.toLowerCase();
           }) || [],
@@ -75,7 +82,7 @@ export function FeedPage() {
           <h2 className="section-heading">Upcoming Events</h2>
           <div className="cards-grid">
             {feed.events.map(event => (
-              <EventCard key={event.id} event={event} />
+              <EventCard key={event.id} event={event} onClick={() => setSelectedEvent(event)} />
             ))}
           </div>
         </section>
@@ -86,7 +93,7 @@ export function FeedPage() {
           <h2 className="section-heading">Latest Opportunities</h2>
           <div className="cards-grid">
             {feed.opportunities.map(opp => (
-              <OpportunityCard key={opp.id} opportunity={opp} />
+              <OpportunityCard key={opp.id} opportunity={opp} onClick={() => setSelectedOpportunity(opp)} />
             ))}
           </div>
         </section>
@@ -108,10 +115,31 @@ export function FeedPage() {
           <h2 className="section-heading">Marketplace</h2>
           <div className="cards-grid">
             {feed.marketplace.map(item => (
-              <MarketplaceCard key={item.id} item={item} />
+              <MarketplaceCard key={item.id} item={item} onClick={() => setSelectedMarketplaceItem(item)} />
             ))}
           </div>
         </section>
+      )}
+
+      {selectedEvent && (
+        <EventDetailModal 
+          event={selectedEvent} 
+          onClose={() => setSelectedEvent(null)} 
+        />
+      )}
+
+      {selectedOpportunity && (
+        <OpportunityDetailModal 
+          opportunity={selectedOpportunity} 
+          onClose={() => setSelectedOpportunity(null)} 
+        />
+      )}
+
+      {selectedMarketplaceItem && (
+        <MarketplaceDetailModal 
+          item={selectedMarketplaceItem} 
+          onClose={() => setSelectedMarketplaceItem(null)} 
+        />
       )}
     </div>
   );

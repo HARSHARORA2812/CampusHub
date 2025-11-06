@@ -19,7 +19,6 @@ export function ResourcesPage() {
       const response = await axios.get(`${API}/resources`);
       console.log('📚 All resources from backend:', response.data);
       
-      // Filter resources by college
       const userCollege = getCollegeName(user?.email);
       console.log('👤 Your college:', userCollege);
       console.log('📧 Your email:', user?.email);

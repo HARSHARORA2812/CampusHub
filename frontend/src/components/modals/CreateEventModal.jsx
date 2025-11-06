@@ -31,7 +31,6 @@ export function CreateEventModal({ onClose, onSuccess }) {
     
     try {
       const response = await axios.get(`${API}/clubs`);
-      // Filter clubs where user is a leader
       const userClubs = response.data.filter(club => 
         club.leader_ids?.includes(user.id)
       );

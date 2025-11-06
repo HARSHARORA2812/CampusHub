@@ -8,7 +8,6 @@ import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Validation middleware
 const validateClub = [
   body('name').trim().isLength({ min: 3 }).withMessage('Club name must be at least 3 characters'),
   body('description').trim().isLength({ min: 10 }).withMessage('Description must be at least 10 characters'),
@@ -19,7 +18,6 @@ const validatePost = [
   body('content').trim().isLength({ min: 1 }).withMessage('Post content required')
 ];
 
-// Create club
 router.post('/', authenticateToken, validateClub, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -38,7 +36,6 @@ router.post('/', authenticateToken, validateClub, async (req, res) => {
     const club = new Club(clubData);
     await club.save();
 
-    // Update user's joined clubs
     await User.findOneAndUpdate(
       { id: req.user.id },
       { $addToSet: { joined_clubs: club.id } }
@@ -51,7 +48,6 @@ router.post('/', authenticateToken, validateClub, async (req, res) => {
   }
 });
 
-// Get clubs (only approved clubs visible to regular users)
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const { category, status } = req.query;
@@ -59,7 +55,6 @@ router.get('/', optionalAuth, async (req, res) => {
     
     if (category) query.category = category;
     
-    // Only show approved clubs unless status is explicitly requested (for admin panel)
     if (status) {
       query.status = status;
     } else {
@@ -74,7 +69,6 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// Get single club
 router.get('/:clubId', optionalAuth, async (req, res) => {
   try {
     const club = await Club.findOne({ id: req.params.clubId });
@@ -89,7 +83,6 @@ router.get('/:clubId', optionalAuth, async (req, res) => {
   }
 });
 
-// Join club
 router.post('/:clubId/join', authenticateToken, async (req, res) => {
   try {
     const club = await Club.findOne({ id: req.params.clubId });
@@ -117,7 +110,6 @@ router.post('/:clubId/join', authenticateToken, async (req, res) => {
   }
 });
 
-// Leave club
 router.delete('/:clubId/join', authenticateToken, async (req, res) => {
   try {
     await Club.findOneAndUpdate(
@@ -140,7 +132,6 @@ router.delete('/:clubId/join', authenticateToken, async (req, res) => {
   }
 });
 
-// Get club members (leaders only)
 router.get('/:clubId/members', authenticateToken, async (req, res) => {
   try {
     const club = await Club.findOne({ id: req.params.clubId });
@@ -148,12 +139,10 @@ router.get('/:clubId/members', authenticateToken, async (req, res) => {
       return res.status(404).json({ detail: 'Club not found' });
     }
 
-    // Check if user is a club leader
     if (!club.leader_ids || !club.leader_ids.includes(req.user.id)) {
       return res.status(403).json({ detail: 'Only club leaders can view members' });
     }
 
-    // Get member details
     const members = await User.find({ id: { $in: club.member_ids } })
       .select('id email full_name');
 
@@ -164,7 +153,6 @@ router.get('/:clubId/members', authenticateToken, async (req, res) => {
   }
 });
 
-// Remove member from club (leaders only)
 router.delete('/:clubId/members/:memberId', authenticateToken, async (req, res) => {
   try {
     const club = await Club.findOne({ id: req.params.clubId });
@@ -172,17 +160,14 @@ router.delete('/:clubId/members/:memberId', authenticateToken, async (req, res) 
       return res.status(404).json({ detail: 'Club not found' });
     }
 
-    // Check if user is a club leader
     if (!club.leader_ids || !club.leader_ids.includes(req.user.id)) {
       return res.status(403).json({ detail: 'Only club leaders can remove members' });
     }
 
-    // Cannot remove club leaders
     if (club.leader_ids.includes(req.params.memberId)) {
       return res.status(400).json({ detail: 'Cannot remove club leaders' });
     }
 
-    // Remove member from club
     await Club.findOneAndUpdate(
       { id: req.params.clubId },
       { 
@@ -191,7 +176,6 @@ router.delete('/:clubId/members/:memberId', authenticateToken, async (req, res) 
       }
     );
 
-    // Remove club from user's joined clubs
     await User.findOneAndUpdate(
       { id: req.params.memberId },
       { $pull: { joined_clubs: req.params.clubId } }
@@ -204,7 +188,6 @@ router.delete('/:clubId/members/:memberId', authenticateToken, async (req, res) 
   }
 });
 
-// Create club post
 router.post('/:clubId/posts', authenticateToken, validatePost, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -240,7 +223,6 @@ router.post('/:clubId/posts', authenticateToken, validatePost, async (req, res) 
   }
 });
 
-// Get club posts
 router.get('/:clubId/posts', optionalAuth, async (req, res) => {
   try {
     const posts = await Post.find({ club_id: req.params.clubId })
@@ -254,10 +236,8 @@ router.get('/:clubId/posts', optionalAuth, async (req, res) => {
   }
 });
 
-// Approve/Reject club (Faculty only)
 router.patch('/:clubId/approve', authenticateToken, async (req, res) => {
   try {
-    // Check if user is faculty
     if (req.user.role !== 'faculty') {
       return res.status(403).json({ detail: 'Only faculty can approve clubs' });
     }
